@@ -1,0 +1,17 @@
+{
+  "hosts": [
+    { "name": "localhost", "address": "127.0.0.1" }
+  ],
+  "tasks": [
+    {
+      "id": 1,
+      "subtasks": [
+        { "id": 1, "component_type": "fields_source", "cpp_class": "FieldsSource", "header": "fields_demo.hpp", "output_type": "int",    "priority": 5, "period_ns": 0, "deadline_ns": 0, "wcet_ns": 0, "core": 0, "config": {} },
+        { "id": 2, "component_type": "fields_sink",   "cpp_class": "FieldsSink",   "header": "fields_demo.hpp", "input_type":  "double", "priority": 5, "period_ns": 0, "deadline_ns": 0, "wcet_ns": 0, "core": 0, "config": {} }
+      ]
+    }
+  ],
+  "connections": [
+    { "upstream": 1, "downstream": 2, "adapter": "int_to_double", "adapter_header": "fields_adapters.hpp" }
+  ]
+}
