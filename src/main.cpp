@@ -6,11 +6,11 @@
  * TeamManager, and keeps the process alive — unlike every test so far,
  * which drives a fixed number of rounds and exits.
  *
- * Periodic sources (fan_in == 0, period_ns > 0) have no upstream to
+ * Periodic sources (fan_in == 0, period_us > 0) have no upstream to
  * re-notify them, so nothing in the scheduler itself re-releases them on
  * their own period — one thread per periodic source calls
  * TeamManager::notify() at that rate here. An aperiodic source
- * (period_ns == 0) is not driven automatically; this minimal entry point
+ * (period_us == 0) is not driven automatically; this minimal entry point
  * has no other trigger source (network, a timer with a different signal,
  * etc.) for one, so it is simply never ticked — a known, named limitation,
  * not a silent gap.
@@ -34,9 +34,28 @@
 
 namespace {
 std::atomic<bool> g_running{true};
+/**
+ * @brief SIGINT/SIGTERM handler: requests a clean shutdown.
+ * @param Unnamed signal number; ignored.
+ * @return void
+ */
 void handle_signal(int) { g_running.store(false, std::memory_order_relaxed); }
 }
 
+/**
+ * @brief Entry point: parses a plan, runs the pipeline until signaled.
+ *
+ * Parses the deployment plan, builds the generated pipeline, starts
+ * TeamManager, spawns one driver thread per periodic source to call
+ * TeamManager::notify() at that source's period, and blocks until SIGINT
+ * or SIGTERM is received, then shuts down via TeamManager::stop().
+ *
+ * @param argc Argument count.
+ * @param argv Argument vector; argv[1], if present, is the plan file path
+ *        (defaults to "plans/deployment_plan.json").
+ * @return 0 on clean shutdown; 1 if the plan fails to parse or the
+ *         pipeline fails to start.
+ */
 int main(int argc, char** argv) {
     const std::string plan_path = argc > 1 ? argv[1] : "plans/deployment_plan.json";
 
@@ -87,10 +106,12 @@ int main(int argc, char** argv) {
     std::vector<std::thread> drivers;
     for (const auto& entry : gp.entries) {
         if (gp.dag.fan_in_count(entry.info.id) != 0) continue; // not a source
-        if (entry.info.period_ns == 0) continue;               // aperiodic: not driven here
+        if (entry.info.period_us == 0) continue;               // aperiodic: not driven here
 
         const int id = entry.info.id;
-        const uint64_t period_ns = entry.info.period_ns;
+        // entry.info.period_us is the plan's microsecond value; this loop
+        // accumulates absolute CLOCK_MONOTONIC time, which is nanoseconds.
+        const uint64_t period_ns = entry.info.period_us * 1000;
         drivers.emplace_back([&tm, id, period_ns]() {
             uint64_t next_ns = Dispatcher::monotonic_ns();
             uint64_t skipped = 0;

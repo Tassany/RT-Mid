@@ -3,13 +3,14 @@
 #include <stdexcept>
 #include <algorithm>
 
-void DAG::add_node(int id, ComponentBase* component) {
+/** @copydoc DAG::add_node */
+void DAG::add_node(int id) {
     Node n;
-    n.id        = id;
-    n.component = component;
+    n.id = id;
     nodes_.push_back(n);
 }
 
+/** @copydoc DAG::add_edge */
 void DAG::add_edge(int from, int to) {
     for (auto& n : nodes_) {
         if (n.id == from) n.successors.push_back(to);
@@ -17,14 +18,16 @@ void DAG::add_edge(int from, int to) {
     }
 }
 
+/** @copydoc DAG::find_node */
 const DAG::Node* DAG::find_node(int id) const {
     for (const auto& n : nodes_)
         if (n.id == id) return &n;
     return nullptr;
 }
 
+/** @copydoc DAG::topological_sort */
 std::vector<int> DAG::topological_sort() const {
-    
+
     std::unordered_map<int, int> indegree;
     // Compute indegrees (how many incoming edges each vertex has)
     for (const auto& n : nodes_)
@@ -58,6 +61,7 @@ std::vector<int> DAG::topological_sort() const {
     return sorted;
 }
 
+/** @copydoc DAG::has_cycle */
 bool DAG::has_cycle() const {
     try {
         topological_sort();
@@ -67,6 +71,7 @@ bool DAG::has_cycle() const {
     }
 }
 
+/** @copydoc DAG::pipeline_depth */
 int DAG::pipeline_depth() const {
     std::vector<int> order = topological_sort(); // throws if cycle
 
@@ -87,11 +92,13 @@ int DAG::pipeline_depth() const {
     return max_depth;
 }
 
+/** @copydoc DAG::fan_in_count */
 int DAG::fan_in_count(int id) const {
     const Node* n = find_node(id);
     return n ? static_cast<int>(n->predecessors.size()) : -1;
 }
 
+/** @copydoc DAG::fan_out_count */
 int DAG::fan_out_count(int id) const {
     const Node* n = find_node(id);
     return n ? static_cast<int>(n->successors.size()) : -1;

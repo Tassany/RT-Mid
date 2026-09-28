@@ -1,0 +1,26 @@
+{
+  "hosts": [
+    { "name": "localhost", "address": "127.0.0.1" }
+  ],
+  "tasks": [
+    {
+      "id": 1,
+      "subtasks": [
+        { "id": 1, "component_type": "source",       "cpp_class": "FluxSource",       "header": "flux_components.hpp", "output_type": "double",                 "priority": 10, "period_us": 5000, "deadline_us": 5000, "wcet_us": 900,  "config": {} },
+        { "id": 2, "component_type": "intermediate",  "cpp_class": "FluxIntermediate", "header": "flux_components.hpp", "input_type": "double", "output_type": "double", "priority": 10, "period_us": 5000, "deadline_us": 5000, "wcet_us": 1800, "config": { "gain": 2.0 } },
+        { "id": 3, "component_type": "intermediate",  "cpp_class": "FluxIntermediate", "header": "flux_components.hpp", "input_type": "double", "output_type": "double", "priority": 10, "period_us": 5000, "deadline_us": 5000, "wcet_us": 1800, "config": { "gain": 3.0 } },
+        { "id": 4, "component_type": "sink",          "cpp_class": "FluxSink",         "header": "flux_components.hpp", "input_type": "std::array<double,2>",     "priority": 10, "period_us": 5000, "deadline_us": 5000, "wcet_us": 900,  "config": {} }
+      ]
+    }
+  ],
+  "connections": [
+    { "upstream": 1, "downstream": 2 },
+    { "upstream": 1, "downstream": 3 },
+    { "upstream": 2, "downstream": 4 },
+    { "upstream": 3, "downstream": 4 }
+  ],
+  "allocation": {
+    "strategy": "worst_fit",
+    "sort_by":  "none"
+  }
+}

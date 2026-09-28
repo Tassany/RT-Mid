@@ -18,6 +18,8 @@ EXTRA_SRCS.integration_pipeline_test := src/dag.cpp src/team_manager.cpp
 # allocation decision.
 EXTRA_SRCS.parser_json_test          := src/dag.cpp src/parser_json.cpp
 EXTRA_SRCS.deployment_plan_fields_test := src/dag.cpp src/parser_json.cpp
+EXTRA_SRCS.test_flux                  := src/dag.cpp src/parser_json.cpp src/team_manager.cpp
+EXTRA_SRCS.performance_test           := src/dag.cpp src/parser_json.cpp src/team_manager.cpp
 EXTRA_SRCS.adapter_test               :=
 EXTRA_SRCS.codegen_pipeline_test      := src/dag.cpp src/team_manager.cpp src/parser_json.cpp $(GENDIR)/pipeline_generated.cpp
 

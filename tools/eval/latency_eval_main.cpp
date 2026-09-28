@@ -10,7 +10,8 @@
  * Dispatcher actually got around to running it, so dispatch latency counts
  * against the deadline like it should. Finish time f_k is when the task's
  * sink subtask (no successors) completes. Response time rho_k = f_k - r_k;
- * a job misses its deadline when rho_k > D_i (deadline_ns from the plan);
+ * a job misses its deadline when rho_k > D_i (deadline_us from the plan,
+ * converted to nanoseconds);
  * the miss ratio is misses / N_i jobs — same formulas as Tables 2-4 of the
  * paper.
  *
@@ -57,6 +58,25 @@
 
 namespace {
 
+/**
+ * @brief Per-task release/finish timestamp log for latency measurement.
+ *
+ * @var TaskTracker::task_id Task identifier.
+ * @var TaskTracker::source_id Id of this task's single source subtask.
+ * @var TaskTracker::sink_id Id of this task's single sink subtask.
+ * @var TaskTracker::period_ns Source subtask's period, in nanoseconds
+ *      (converted from the plan's period_us — compared directly against
+ *      monotonic_ns()).
+ * @var TaskTracker::deadline_ns Sink subtask's relative deadline, in
+ *      nanoseconds (converted from the plan's deadline_us, for the same
+ *      reason).
+ * @var TaskTracker::mutex Guards release_ns/finish_ns against concurrent
+ *      access from driver and dispatcher threads.
+ * @var TaskTracker::release_ns release_ns[k]: intended release instant of
+ *      job k.
+ * @var TaskTracker::finish_ns finish_ns[k]: sink completion instant of
+ *      job k.
+ */
 struct TaskTracker {
     int task_id = 0;
     int source_id = -1;
@@ -69,10 +89,30 @@ struct TaskTracker {
     std::vector<uint64_t> finish_ns;  // finish_ns[k]:  sink completion instant of job k
 };
 
+/**
+ * @brief Reads the current monotonic time via Dispatcher's clock.
+ * @return Current CLOCK_MONOTONIC time, in nanoseconds.
+ */
 uint64_t monotonic_ns() { return Dispatcher::monotonic_ns(); }
 
 } // namespace
 
+/**
+ * @brief Entry point: measures response time and deadline miss ratio.
+ *
+ * Parses the plan, builds the pipeline, wraps each tracked task's sink
+ * execute() to record finish timestamps, drives each task's source for a
+ * fixed number of periodic releases while recording intended release
+ * timestamps, then prints one CSV line per job (release/finish/response
+ * time/deadline/met) to stdout and a per-task summary to stderr.
+ *
+ * @param argc Argument count.
+ * @param argv Argument vector; argv[1] is the plan path (default
+ *        "plans/deployment_plan.json"), argv[2] is jobs per task (default
+ *        100).
+ * @return 0 on success; 1 if the plan fails to parse or the pipeline
+ *         fails to start.
+ */
 int main(int argc, char** argv) {
     const std::string plan_path = argc > 1 ? argv[1] : "plans/deployment_plan.json";
     const int jobs_per_task = argc > 2 ? std::atoi(argv[2]) : 100;
@@ -94,8 +134,8 @@ int main(int argc, char** argv) {
         auto tracker = std::make_unique<TaskTracker>();
         tracker->task_id = t.id;
         for (const auto& st : t.subtasks) {
-            if (gp.dag.fan_in_count(st.id) == 0)  { tracker->source_id = st.id; tracker->period_ns = st.period_ns; }
-            if (gp.dag.fan_out_count(st.id) == 0) { tracker->sink_id   = st.id; tracker->deadline_ns = st.deadline_ns; }
+            if (gp.dag.fan_in_count(st.id) == 0)  { tracker->source_id = st.id; tracker->period_ns = st.period_us * 1000; }
+            if (gp.dag.fan_out_count(st.id) == 0) { tracker->sink_id   = st.id; tracker->deadline_ns = st.deadline_us * 1000; }
         }
         if (tracker->source_id < 0 || tracker->sink_id < 0) {
             std::cerr << "latency_eval: task " << t.id << " has no single source/sink; skipping\n";

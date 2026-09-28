@@ -16,12 +16,30 @@ namespace {
 // no connections either way) satisfies both the initial and the terminal
 // wording at once — the paper doesn't resolve that degenerate case, so this
 // is a deliberate tie-break, not an oversight: it resolves to "source".
+/**
+ * @brief Derives the expected component role from graph connectivity.
+ *
+ * Ties are broken deliberately: a subtask with fan_in==0 AND fan_out==0
+ * (isolated) satisfies both the "initial" and "terminal" wording of the
+ * paper's classification at once, and resolves to "source".
+ *
+ * @param fan_in Number of direct predecessors of the subtask.
+ * @param fan_out Number of direct successors of the subtask.
+ * @return "source" if fan_in==0, "sink" if fan_out==0 (and fan_in!=0),
+ *         otherwise "intermediate".
+ */
 std::string expected_component_type(int fan_in, int fan_out) {
     if (fan_in == 0)  return "source";
     if (fan_out == 0) return "sink";
     return "intermediate";
 }
 
+/**
+ * @brief Converts a ComponentKind enum value to its plan-file string name.
+ * @param kind Component role reported by a real component's kind().
+ * @return "source", "intermediate", or "sink"; "unknown" is unreachable
+ *         and exists only to silence -Wreturn-type on some compilers.
+ */
 std::string role_string(ComponentKind kind) {
     switch (kind) {
         case ComponentKind::SOURCE:       return "source";
@@ -33,6 +51,7 @@ std::string role_string(ComponentKind kind) {
 
 }
 
+/** @copydoc JsonParser::parse_raw */
 DeploymentPlan JsonParser::parse_raw(const std::string& filename) {
     std::ifstream file(filename.c_str());
     if (!file.is_open()) {
@@ -49,6 +68,7 @@ DeploymentPlan JsonParser::parse_raw(const std::string& filename) {
     return plan;
 }
 
+/** @copydoc JsonParser::apply_allocation_if_needed */
 void JsonParser::apply_allocation_if_needed(DeploymentPlan& plan) {
     bool needs_allocation = false;
     for (const auto& task : plan.tasks)
@@ -59,6 +79,7 @@ void JsonParser::apply_allocation_if_needed(DeploymentPlan& plan) {
         allocator::apply_auto_allocation(plan);
 }
 
+/** @copydoc JsonParser::parse */
 DeploymentPlan JsonParser::parse(const std::string& filename) {
     DeploymentPlan plan = parse_raw(filename);
     validate_structure(plan);
@@ -67,6 +88,7 @@ DeploymentPlan JsonParser::parse(const std::string& filename) {
     return plan;
 }
 
+/** @copydoc JsonParser::parse_for_codegen */
 DeploymentPlan JsonParser::parse_for_codegen(const std::string& filename) {
     DeploymentPlan plan = parse_raw(filename);
     validate_structure(plan);
@@ -74,6 +96,7 @@ DeploymentPlan JsonParser::parse_for_codegen(const std::string& filename) {
     return plan;
 }
 
+/** @copydoc JsonParser::parse_hosts */
 std::vector<HostInfo> JsonParser::parse_hosts(const json& j) {
     std::vector<HostInfo> hosts;
     for (const auto& h : j["hosts"]) {
@@ -85,6 +108,7 @@ std::vector<HostInfo> JsonParser::parse_hosts(const json& j) {
     return hosts;
 }
 
+/** @copydoc JsonParser::parse_tasks */
 std::vector<TaskInfo> JsonParser::parse_tasks(const json& j) {
     std::vector<TaskInfo> tasks;
     for (const auto& t : j["tasks"]) {
@@ -98,6 +122,7 @@ std::vector<TaskInfo> JsonParser::parse_tasks(const json& j) {
     return tasks;
 }
 
+/** @copydoc JsonParser::parse_subtasks */
 std::vector<SubtaskInfo> JsonParser::parse_subtasks(const json& j) {
     std::vector<SubtaskInfo> subtasks;
     for (const auto& s : j["subtasks"]) {
@@ -107,9 +132,9 @@ std::vector<SubtaskInfo> JsonParser::parse_subtasks(const json& j) {
         subtask.host      = s.value("host", std::string{""});
         subtask.core      = s.value("core", CORE_UNASSIGNED);
         subtask.priority  = s["priority"];
-        subtask.period_ns   = s.value("period_ns", uint64_t(0));
-        subtask.deadline_ns = s.value("deadline_ns", uint64_t(0));
-        subtask.wcet_ns     = s.value("wcet_ns", uint64_t(0));
+        subtask.period_us   = s.value("period_us", uint64_t(0));
+        subtask.deadline_us = s.value("deadline_us", uint64_t(0));
+        subtask.wcet_us     = s.value("wcet_us", uint64_t(0));
         subtask.benchmark   = s.value("benchmark", std::string{""});
         subtask.config      = s.value("config", json::object());
         subtask.cpp_class   = s.value("cpp_class",   std::string{""});
@@ -121,6 +146,7 @@ std::vector<SubtaskInfo> JsonParser::parse_subtasks(const json& j) {
     return subtasks;
 }
 
+/** @copydoc JsonParser::parse_allocation */
 AllocationConfig JsonParser::parse_allocation(const json& j) {
     AllocationConfig cfg;  // defaults live in deployment_plan.hpp
     if (!j.contains("allocation")) return cfg;
@@ -136,6 +162,7 @@ AllocationConfig JsonParser::parse_allocation(const json& j) {
     return cfg;
 }
 
+/** @copydoc JsonParser::parse_connections */
 std::vector<ConnectionInfo> JsonParser::parse_connections(const json& j) {
     std::vector<ConnectionInfo> connections;
     for(const auto& c : j["connections"]){
@@ -149,11 +176,12 @@ std::vector<ConnectionInfo> JsonParser::parse_connections(const json& j) {
     return connections;
 }
 
+/** @copydoc JsonParser::validate_structure */
 void JsonParser::validate_structure(const DeploymentPlan& plan) const {
     DAG dag;
     for (const auto& task : plan.tasks)
         for (const auto& st : task.subtasks)
-            dag.add_node(st.id, nullptr);
+            dag.add_node(st.id);
     for (const auto& c : plan.connections)
         dag.add_edge(c.upstream, c.downstream);
 
@@ -165,11 +193,12 @@ void JsonParser::validate_structure(const DeploymentPlan& plan) const {
     }
 }
 
+/** @copydoc JsonParser::validate_components */
 void JsonParser::validate_components(const DeploymentPlan& plan) const {
     DAG dag;
     for (const auto& task : plan.tasks)
         for (const auto& st : task.subtasks)
-            dag.add_node(st.id, nullptr);
+            dag.add_node(st.id);
     for (const auto& c : plan.connections)
         dag.add_edge(c.upstream, c.downstream);
 

@@ -1,12 +1,15 @@
 #include "team_manager.hpp"
 #include <algorithm>
 
+/** @copydoc TeamManager::TeamManager */
 TeamManager::TeamManager() : state_(State::CREATED) {}
 
+/** @brief Calls stop() to ensure an orderly shutdown before destruction. */
 TeamManager::~TeamManager() { stop(); }
 
 // -----------------------------------------------------------------------
 
+/** @copydoc TeamManager::initialize */
 void TeamManager::initialize(const std::vector<SubtaskEntry>& entries,
                               const DAG& dag) {
     std::lock_guard<std::mutex> lk(state_mutex_);
@@ -50,12 +53,8 @@ void TeamManager::initialize(const std::vector<SubtaskEntry>& entries,
         if (dispatchers_.find(cp) == dispatchers_.end()) {
             dispatchers_[cp] = std::make_unique<Dispatcher>(info->core, info->priority);
             dispatcher_order_.push_back(cp);  // remember creation order
-
-            // One CoreIdleController per physical core, shared by every
-            // priority level on it (MCFlow Section V-C).
-            if (idle_controllers_.find(info->core) == idle_controllers_.end())
-                idle_controllers_[info->core] = std::make_unique<CoreIdleController>(info->core);
-            idle_controllers_.at(info->core)->register_dispatcher(dispatchers_.at(cp).get());
+            // Each Dispatcher owns and starts its own idle thread
+            // internally (see dispatcher.hpp) — nothing to register here.
         }
         subtask_dispatcher_[id] = dispatchers_.at(cp).get();
     }
@@ -73,8 +72,11 @@ void TeamManager::initialize(const std::vector<SubtaskEntry>& entries,
         Subtask*           s    = subtasks_.at(id);
         const SubtaskInfo* info = info_map.at(id);
 
-        // Scheduling metadata from SubtaskInfo
-        s->period_ns = info->period_ns;
+        // Scheduling metadata from SubtaskInfo. The plan (and SubtaskInfo)
+        // carry durations in microseconds; Dispatcher's Subtask::period_ns
+        // is compared directly against monotonic_ns() (CLOCK_MONOTONIC),
+        // so it needs real nanoseconds here.
+        s->period_ns = info->period_us * 1000;
 
         // fan_in_mask_full derived from the DAG: one bit per predecessor
         // (min 1 bit for source nodes, which have none but are ticked
@@ -111,6 +113,16 @@ void TeamManager::initialize(const std::vector<SubtaskEntry>& entries,
         s->execute = [this, id, original_fn]() {
             try {
                 original_fn();
+            } catch (const WriteAbortedOnShutdown&) {
+                // Expected during shutdown (see ring_buffer.hpp): this
+                // subtask was stuck spinning on ring-buffer backpressure
+                // when it was asked to terminate, and gave up rather than
+                // risk Dispatcher::stop()'s pthread_join blocking forever.
+                // Distinct from a real fault below — no
+                // on_subtask_exception() (that's for a genuine runtime
+                // fault during RUNNING, not an expected abort mid-shutdown).
+                std::cerr << "[TeamManager] subtask " << id
+                          << " abandoned a write during shutdown (was blocked on backpressure)\n";
             } catch (const std::exception& e) {
                 std::cerr << "[TeamManager] subtask " << id
                           << " threw: " << e.what() << "\n";
@@ -143,7 +155,7 @@ void TeamManager::initialize(const std::vector<SubtaskEntry>& entries,
             const SubtaskInfo* down_info = info_map.at(down_id);
 
             ring_buffer_sizes_[{up_id, down_id}] = ring_buffer_n(
-                up_info->period_ns, down_info->deadline_ns, depth);
+                up_info->period_us, down_info->deadline_us, depth);
         }
     }
 
@@ -152,23 +164,23 @@ void TeamManager::initialize(const std::vector<SubtaskEntry>& entries,
 
 // -----------------------------------------------------------------------
 
+/** @copydoc TeamManager::start */
 void TeamManager::start() {
     std::lock_guard<std::mutex> lk(state_mutex_);
     if (state_ != State::INITIALIZED)
         throw std::runtime_error("TeamManager::start: not in INITIALIZED state");
 
-    // Start in topological creation order (sources before sinks)
+    // Start in topological creation order (sources before sinks). Each
+    // Dispatcher::start() also launches its own idle thread.
     for (const auto& cp : dispatcher_order_)
         dispatchers_.at(cp)->start();
-
-    for (auto& [core, ctrl] : idle_controllers_)
-        ctrl->start();
 
     state_ = State::RUNNING;
 }
 
 // -----------------------------------------------------------------------
 
+/** @copydoc TeamManager::stop */
 void TeamManager::stop() {
     {
         std::lock_guard<std::mutex> lk(state_mutex_);
@@ -180,6 +192,7 @@ void TeamManager::stop() {
 
 // -----------------------------------------------------------------------
 
+/** @copydoc TeamManager::notify */
 void TeamManager::notify(int subtask_id) {
     std::lock_guard<std::mutex> lk(state_mutex_);
     if (state_ != State::RUNNING)
@@ -189,6 +202,7 @@ void TeamManager::notify(int subtask_id) {
 
 // -----------------------------------------------------------------------
 
+/** @copydoc TeamManager::on_subtask_exception */
 void TeamManager::on_subtask_exception(int subtask_id) {
     std::lock_guard<std::mutex> lk(state_mutex_);
     if (state_ == State::RUNNING) {
@@ -203,6 +217,7 @@ void TeamManager::on_subtask_exception(int subtask_id) {
 
 // -----------------------------------------------------------------------
 
+/** @copydoc TeamManager::on_subtask_stopped */
 void TeamManager::on_subtask_stopped(int /*subtask_id*/) {
     if (pending_stop_acks_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
         // We just brought the count to 0: last subtask to confirm.
@@ -213,6 +228,7 @@ void TeamManager::on_subtask_stopped(int /*subtask_id*/) {
 
 // -----------------------------------------------------------------------
 
+/** @copydoc TeamManager::state */
 TeamManager::State TeamManager::state() const {
     std::lock_guard<std::mutex> lk(state_mutex_);
     return state_;
@@ -220,6 +236,7 @@ TeamManager::State TeamManager::state() const {
 
 // -----------------------------------------------------------------------
 
+/** @copydoc TeamManager::dispatcher_count */
 std::size_t TeamManager::dispatcher_count() const {
     std::lock_guard<std::mutex> lk(state_mutex_);
     return dispatchers_.size();
@@ -227,6 +244,7 @@ std::size_t TeamManager::dispatcher_count() const {
 
 // -----------------------------------------------------------------------
 
+/** @copydoc TeamManager::ring_buffer_size */
 std::size_t TeamManager::ring_buffer_size(int upstream_id, int downstream_id) const {
     std::lock_guard<std::mutex> lk(state_mutex_);
     auto it = ring_buffer_sizes_.find({upstream_id, downstream_id});
@@ -235,6 +253,7 @@ std::size_t TeamManager::ring_buffer_size(int upstream_id, int downstream_id) co
 
 // -----------------------------------------------------------------------
 
+/** @copydoc TeamManager::do_stop */
 void TeamManager::do_stop() {
     // --- MCFlow-style termination (Section V-A) ---
     // Every subtask stops accepting new input, propagates the request to
@@ -250,14 +269,14 @@ void TeamManager::do_stop() {
     // second path; stop_acked on Subtask makes arriving twice harmless.
     //
     // Correctness argument for what follows: we do not touch any
-    // CoreIdleController or Dispatcher until every subtask has acknowledged
-    // (or we time out). Once that holds, no Dispatcher can still be
-    // notify()'d or terminate()'d by another dispatcher thread, so tearing
-    // down controllers and dispatchers below cannot race on a queue_mutex_
-    // or efd_ that another thread is still using. This replaces the
-    // previous reverse-creation-order stop, which could let a still-running
-    // upstream Dispatcher call notify() on a downstream Dispatcher whose
-    // mutex/fd had already been destroyed/closed.
+    // Dispatcher until every subtask has acknowledged (or we time out).
+    // Once that holds, no Dispatcher can still be notify()'d or
+    // terminate()'d by another dispatcher thread, so tearing down
+    // dispatchers below cannot race on a queue_mutex_ or efd_ that another
+    // thread is still using. This replaces the previous reverse-creation-
+    // order stop, which could let a still-running upstream Dispatcher call
+    // notify() on a downstream Dispatcher whose mutex/fd had already been
+    // destroyed/closed.
     pending_stop_acks_.store(static_cast<int>(subtasks_.size()), std::memory_order_release);
 
     for (const auto& [id, s] : subtasks_)
@@ -274,13 +293,10 @@ void TeamManager::do_stop() {
                          "forcing shutdown\n";
     }
 
-    // Idle controllers first: once stopped, nothing external touches a
-    // Dispatcher's queue_mutex_/efd_ anymore, so dispatcher stop order below
-    // is no longer safety-critical — kept in reverse creation order only for
-    // symmetry with how they were created.
-    for (auto& [core, ctrl] : idle_controllers_)
-        ctrl->stop();
-
+    // Each Dispatcher::stop() also stops its own idle thread — no separate
+    // controller teardown needed. Order is no longer safety-critical (see
+    // the correctness argument above); kept in reverse creation order only
+    // for symmetry with how they were created.
     for (auto it = dispatcher_order_.rbegin(); it != dispatcher_order_.rend(); ++it)
         dispatchers_.at(*it)->stop();
 

@@ -1,0 +1,50 @@
+{
+  "hosts": [
+    { "name": "localhost", "address": "127.0.0.1" }
+  ],
+  "tasks": [
+    {
+      "id": 1,
+      "subtasks": [
+        { "id": 1, "component_type": "workload_source",       "cpp_class": "WorkloadSource",       "header": "perf_components.hpp", "output_type": "double",                 "core": 0, "priority": 30, "period_us": 5000, "deadline_us": 5000, "wcet_us": 900,  "config": { "workload_us": 900 } },
+        { "id": 2, "component_type": "workload_intermediate",  "cpp_class": "WorkloadIntermediate", "header": "perf_components.hpp", "input_type": "double", "output_type": "double", "core": 0, "priority": 30, "period_us": 5000, "deadline_us": 5000, "wcet_us": 1800, "config": { "workload_us": 1800 } },
+        { "id": 3, "component_type": "workload_intermediate",  "cpp_class": "WorkloadIntermediate", "header": "perf_components.hpp", "input_type": "double", "output_type": "double", "core": 1, "priority": 30, "period_us": 5000, "deadline_us": 5000, "wcet_us": 1800, "config": { "workload_us": 1800 } },
+        { "id": 4, "component_type": "workload_intermediate",  "cpp_class": "WorkloadIntermediate", "header": "perf_components.hpp", "input_type": "double", "output_type": "double", "core": 2, "priority": 30, "period_us": 5000, "deadline_us": 5000, "wcet_us": 1800, "config": { "workload_us": 1800 } },
+        { "id": 5, "component_type": "workload_intermediate",  "cpp_class": "WorkloadIntermediate", "header": "perf_components.hpp", "input_type": "double", "output_type": "double", "core": 3, "priority": 30, "period_us": 5000, "deadline_us": 5000, "wcet_us": 1800, "config": { "workload_us": 1800 } },
+        { "id": 6, "component_type": "workload_sink",          "cpp_class": "WorkloadSink",         "header": "perf_components.hpp", "input_type": "std::array<double,4>",    "core": 0, "priority": 30, "period_us": 5000, "deadline_us": 5000, "wcet_us": 900,  "config": { "workload_us": 900 } }
+      ]
+    },
+    {
+      "id": 2,
+      "subtasks": [
+        { "id": 7,  "component_type": "workload_source",       "cpp_class": "WorkloadSource",       "header": "perf_components.hpp", "output_type": "double",                 "core": 1, "priority": 20, "period_us": 10000, "deadline_us": 10000, "wcet_us": 900,  "config": { "workload_us": 900 } },
+        { "id": 8,  "component_type": "workload_intermediate",  "cpp_class": "WorkloadIntermediate", "header": "perf_components.hpp", "input_type": "double", "output_type": "double", "core": 1, "priority": 20, "period_us": 10000, "deadline_us": 10000, "wcet_us": 0,    "config": { "workload_us": 0 } },
+        { "id": 9,  "component_type": "workload_intermediate",  "cpp_class": "WorkloadIntermediate", "header": "perf_components.hpp", "input_type": "double", "output_type": "double", "core": 1, "priority": 20, "period_us": 10000, "deadline_us": 10000, "wcet_us": 1800, "config": { "workload_us": 1800 } },
+        { "id": 10, "component_type": "workload_intermediate",  "cpp_class": "WorkloadIntermediate", "header": "perf_components.hpp", "input_type": "double", "output_type": "double", "core": 2, "priority": 20, "period_us": 10000, "deadline_us": 10000, "wcet_us": 1800, "config": { "workload_us": 1800 } },
+        { "id": 11, "component_type": "workload_intermediate",  "cpp_class": "WorkloadIntermediate", "header": "perf_components.hpp", "input_type": "double", "output_type": "double", "core": 3, "priority": 20, "period_us": 10000, "deadline_us": 10000, "wcet_us": 1800, "config": { "workload_us": 1800 } },
+        { "id": 12, "component_type": "workload_sink",          "cpp_class": "WorkloadSink",         "header": "perf_components.hpp", "input_type": "std::array<double,4>",    "core": 1, "priority": 20, "period_us": 10000, "deadline_us": 10000, "wcet_us": 1800, "config": { "workload_us": 1800 } }
+      ]
+    },
+    {
+      "id": 3,
+      "subtasks": [
+        { "id": 13, "component_type": "workload_source",       "cpp_class": "WorkloadSource",       "header": "perf_components.hpp", "output_type": "double",                 "core": 2, "priority": 10, "period_us": 20000, "deadline_us": 20000, "wcet_us": 900,  "config": { "workload_us": 900 } },
+        { "id": 14, "component_type": "workload_intermediate",  "cpp_class": "WorkloadIntermediate", "header": "perf_components.hpp", "input_type": "double", "output_type": "double", "core": 0, "priority": 10, "period_us": 20000, "deadline_us": 20000, "wcet_us": 1800, "config": { "workload_us": 1800 } },
+        { "id": 15, "component_type": "workload_intermediate",  "cpp_class": "WorkloadIntermediate", "header": "perf_components.hpp", "input_type": "double", "output_type": "double", "core": 1, "priority": 10, "period_us": 20000, "deadline_us": 20000, "wcet_us": 900,  "config": { "workload_us": 900 } },
+        { "id": 16, "component_type": "workload_intermediate",  "cpp_class": "WorkloadIntermediate", "header": "perf_components.hpp", "input_type": "double", "output_type": "double", "core": 2, "priority": 10, "period_us": 20000, "deadline_us": 20000, "wcet_us": 4500, "config": { "workload_us": 4500 } },
+        { "id": 17, "component_type": "workload_intermediate",  "cpp_class": "WorkloadIntermediate", "header": "perf_components.hpp", "input_type": "double", "output_type": "double", "core": 3, "priority": 10, "period_us": 20000, "deadline_us": 20000, "wcet_us": 3600, "config": { "workload_us": 3600 } },
+        { "id": 18, "component_type": "workload_sink",          "cpp_class": "WorkloadSink",         "header": "perf_components.hpp", "input_type": "std::array<double,4>",    "core": 2, "priority": 10, "period_us": 20000, "deadline_us": 20000, "wcet_us": 900,  "config": { "workload_us": 900 } }
+      ]
+    }
+  ],
+  "connections": [
+    { "upstream": 1, "downstream": 2 }, { "upstream": 1, "downstream": 3 }, { "upstream": 1, "downstream": 4 }, { "upstream": 1, "downstream": 5 },
+    { "upstream": 2, "downstream": 6 }, { "upstream": 3, "downstream": 6 }, { "upstream": 4, "downstream": 6 }, { "upstream": 5, "downstream": 6 },
+
+    { "upstream": 7, "downstream": 8 }, { "upstream": 7, "downstream": 9 }, { "upstream": 7, "downstream": 10 }, { "upstream": 7, "downstream": 11 },
+    { "upstream": 8, "downstream": 12 }, { "upstream": 9, "downstream": 12 }, { "upstream": 10, "downstream": 12 }, { "upstream": 11, "downstream": 12 },
+
+    { "upstream": 13, "downstream": 14 }, { "upstream": 13, "downstream": 15 }, { "upstream": 13, "downstream": 16 }, { "upstream": 13, "downstream": 17 },
+    { "upstream": 14, "downstream": 18 }, { "upstream": 15, "downstream": 18 }, { "upstream": 16, "downstream": 18 }, { "upstream": 17, "downstream": 18 }
+  ]
+}

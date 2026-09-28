@@ -23,6 +23,18 @@
 
 namespace allocator {
 
+/**
+ * @brief STUB allocator: assigns every unassigned subtask to core 0.
+ *
+ * Walks every task and subtask in @p plan and, for each subtask whose
+ * core is still CORE_UNASSIGNED, sets it to core 0. This is not a real
+ * scheduling decision — it exists only to unblock JsonParser::parse() so
+ * the parse/validate pipeline can be exercised end-to-end before the real
+ * Worst-Fit allocator (paper Section 4.5) is written.
+ *
+ * @param plan Deployment plan whose tasks/subtasks are mutated in place.
+ * @return void
+ */
 inline void apply_auto_allocation(DeploymentPlan& plan) {
     for (auto& task : plan.tasks)
         for (auto& st : task.subtasks)
