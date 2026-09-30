@@ -3,43 +3,60 @@
 /**
  * @file allocator.hpp
  *
- * STUB — placeholder only, NOT the real allocation heuristic.
- *
- * The real automatic core-allocation algorithm (Worst-Fit with Decreasing
- * Remaining Utilisation, paper Section 4.5 — this project's main scientific
- * contribution) is being rewritten from scratch, spec-first, with the
- * scrutiny RULES.md §4 requires for the core contribution. It does not
- * belong in this file and should not be drafted here.
- *
- * This stub exists only so parser_json.cpp compiles and its parse/validate
- * pipeline (including the "no core given in the plan" path) can be tested
- * end-to-end before the real allocator exists. It assigns every unassigned
- * subtask to core 0 — not a scheduling decision of any kind, just enough to
- * unblock JsonParser::parse(). Replace this whole file when the real
- * allocator is written; nothing here should survive that.
+ * Shared subtask/DAG helpers used by every allocation strategy, plus the
+ * public dispatcher: apply_auto_allocation reads plan.allocation.strategy
+ * and calls the matching strategy's own entry point (dru::apply_wf_dru_allocation,
+ * eru::apply_eru_allocation, ...). Each strategy's own algorithm lives in
+ * its own file (dru.hpp/dru.cpp, eru.hpp/eru.cpp, ...) — this header only
+ * owns what more than one of them needs.
  */
 
 #include "deployment_plan.hpp"
+#include "dag.hpp"
 
 namespace allocator {
 
+namespace detail {
+
 /**
- * @brief STUB allocator: assigns every unassigned subtask to core 0.
- *
- * Walks every task and subtask in @p plan and, for each subtask whose
- * core is still CORE_UNASSIGNED, sets it to core 0. This is not a real
- * scheduling decision — it exists only to unblock JsonParser::parse() so
- * the parse/validate pipeline can be exercised end-to-end before the real
- * Worst-Fit allocator (paper Section 4.5) is written.
- *
- * @param plan Deployment plan whose tasks/subtasks are mutated in place.
- * @return void
+ * @brief Utilization of a single subtask: wcet_us / period_us.
+ * @param st Subtask to compute utilization for.
+ * @return WCET divided by period, as a double.
  */
-inline void apply_auto_allocation(DeploymentPlan& plan) {
-    for (auto& task : plan.tasks)
-        for (auto& st : task.subtasks)
-            if (st.core == CORE_UNASSIGNED)
-                st.core = 0; // STUB: everything on core 0, not a real strategy
-}
+double utilization(const SubtaskInfo& st);
+
+/**
+ * @brief Builds the whole-plan dependency graph.
+ *
+ * All subtasks across every task in @p plan become one shared node set;
+ * plan.connections become edges — the same construction
+ * JsonParser::validate_structure uses, so allocation sees the same graph
+ * the cycle check already validated.
+ *
+ * @param plan Plan to build the graph from.
+ * @return DAG with one node per subtask and one edge per connection.
+ */
+DAG build_plan_dag(const DeploymentPlan& plan);
+
+} // namespace detail
+
+/**
+ * @brief Assigns a core to every subtask with core == CORE_UNASSIGNED.
+ *
+ * Dispatches on plan.allocation.strategy: "worst_fit" calls
+ * dru::apply_wf_dru_allocation (WF+DRU); "eru" calls
+ * eru::apply_eru_allocation. Any other strategy value is rejected — this
+ * codebase implements exactly these named heuristics, not a general
+ * allocation-strategy framework (more strategies are added as their own
+ * dispatch branches, e.g. a future specs/tdta-allocator/).
+ *
+ * @param plan Deployment plan whose unassigned subtasks are mutated in
+ *        place.
+ * @return void
+ * @throws std::runtime_error if plan.allocation.strategy is neither
+ *         "worst_fit" nor "eru", or if the chosen strategy itself reports
+ *         infeasible placement.
+ */
+void apply_auto_allocation(DeploymentPlan& plan);
 
 } // namespace allocator

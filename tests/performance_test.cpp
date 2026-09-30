@@ -41,6 +41,8 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <pthread.h>
+#include <sched.h>
 #include <string>
 #include <thread>
 #include <time.h>
@@ -215,10 +217,28 @@ std::array<TaskResult, 3> run_experiment(DeploymentPlan plan, double low_freq_hz
     // simplified realignment on falling behind (snap to now, no missed-
     // release counting/logging), since this is a fixed-length test run,
     // not the production driver.
+    //
+    // Pinned to cores 10-12 (well outside 0-3 AND outside their HT
+    // siblings 4/5 — see the topology check from the hyperthread
+    // investigation) — this stands in for the paper's own client host,
+    // which physically cannot interfere with the server's cores because
+    // it's different hardware entirely (MCFlow paper, Section VI-C:
+    // "all the client subtasks are on the same machine and all server
+    // subtasks are on the other"). Our driver threads previously ran
+    // unpinned SCHED_OTHER, free to land on cores 0-3 and contend with
+    // the very Dispatcher threads under test — a discrepancy from the
+    // paper's actual two-host setup that this closes.
     std::vector<std::thread> drivers;
+    int driver_idx = 0;
     for (auto& w : wiring) {
         TaskWiring* wp = &w;
-        drivers.emplace_back([&tm, wp]() {
+        const int driver_core = 10 + driver_idx++;
+        drivers.emplace_back([&tm, wp, driver_core]() {
+            cpu_set_t mask;
+            CPU_ZERO(&mask);
+            CPU_SET(driver_core, &mask);
+            pthread_setaffinity_np(pthread_self(), sizeof(mask), &mask);
+
             uint64_t next_ns = Dispatcher::monotonic_ns();
             // Bail-out valve: without real SCHED_FIFO (no root — see the
             // "RT priority not applied" warning), CFS shares CPU fairly
@@ -300,15 +320,11 @@ int main() {
            plan.tasks[1].subtasks.size() == 6 &&
            plan.tasks[2].subtasks.size() == 6, "six subtasks per task (Ts, T0-T3, Tm)");
 
-    // TEMPORARY diagnostic: throwaway warm-up run, discarded, before the
-    // real (measured) sweep below. Tests the hypothesis that 50Hz's own
-    // consistently-worse numbers are a startup artifact (first real-time
-    // threads ever created in this process: first pthread_create/
-    // setaffinity/setschedparam, cold caches, CPU frequency ramp-up) that
-    // happens to always land on whichever frequency point runs first,
-    // rather than something intrinsic to 50Hz's own load shape. If the
-    // real, measured 50Hz point below now looks like 60-70Hz instead of
-    // its usual outlier self, that confirms it. Remove once settled.
+    // Throwaway warm-up run, discarded, before the real (measured) sweep
+    // below — the very first real-time threads ever created in this
+    // process pay a one-time cost (first pthread_create/setaffinity/
+    // setschedparam, cold caches) that would otherwise land entirely on
+    // whichever frequency point happens to run first, distorting it.
     std::cerr << "--- warm-up (discarded) ---\n";
     run_experiment(plan, 50);
 
