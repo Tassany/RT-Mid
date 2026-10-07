@@ -7,9 +7,9 @@ task's rate varies while High and Medium stay fixed).
 Topology per task (paper Fig. 8 / this project's own Fig. 1): Ts -> {T0,T1,
 T2,T3} -> Tm. Three tasks share the same cores, distinguished only by
 priority (fixed-priority, one priority per task, shared by all its
-subtasks — paper Section 3's model). component_type/cpp_class/header are
-bench_source/bench_intermediate/bench_sink4 from
-src/mcflow_bench_components.hpp; each subtask's real workload comes from
+subtasks — paper Section 3's model). component_type is source/intermediate/
+sink (cpp_class/header point at BenchSource/BenchIntermediate/BenchSink4 in
+src/mcflow_bench_components.hpp); each subtask's real workload comes from
 its own config.workload_us, taken straight from Table I.
 
 Usage: python3 tools/eval/gen_priority_plans.py [out_dir]  (default: plans)
@@ -48,7 +48,7 @@ def build_plan(low_hz: float) -> dict:
     id_of = {}  # (level, name) -> id
 
     for level in ("high", "med", "low"):
-        period_ns = round(1e9 / freqs[level])
+        period_us = round(1e6 / freqs[level])
         entries = []
         for name in SUBTASK_ORDER:
             core, workload_us = TABLE_I[level][name]
@@ -56,13 +56,13 @@ def build_plan(low_hz: float) -> dict:
             id_counter += 1
             id_of[(level, name)] = sid
             if name == "Ts":
-                component_type, cpp_class = "bench_source", "BenchSource"
+                component_type, cpp_class = "source", "BenchSource"
                 fields = {"output_type": "double"}
             elif name == "Tm":
-                component_type, cpp_class = "bench_sink4", "BenchSink4"
+                component_type, cpp_class = "sink", "BenchSink4"
                 fields = {"input_type": "std::array<double,4>"}
             else:
-                component_type, cpp_class = "bench_intermediate", "BenchIntermediate"
+                component_type, cpp_class = "intermediate", "BenchIntermediate"
                 fields = {"input_type": "double", "output_type": "double"}
             entry = {
                 "id": sid,
@@ -70,9 +70,9 @@ def build_plan(low_hz: float) -> dict:
                 "cpp_class": cpp_class,
                 "header": "mcflow_bench_components.hpp",
                 "priority": PRIORITY[level],
-                "period_ns": period_ns,
-                "deadline_ns": period_ns,  # implicit deadline (paper Section 3)
-                "wcet_ns": workload_us * 1000,
+                "period_us": period_us,
+                "deadline_us": period_us,  # implicit deadline (paper Section 3)
+                "wcet_us": workload_us,
                 "core": core,
                 "config": {"workload_us": workload_us},
             }

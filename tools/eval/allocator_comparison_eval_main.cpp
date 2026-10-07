@@ -3,10 +3,15 @@
  *
  * Measures end-to-end response time for one fixed pipeline topology
  * (Ts -> {T0,T1,T2,T3} -> Tm, the demo/Table-I shape already used by
- * tests/performance_test.cpp) under two core placements: every subtask
+ * tests/performance_test.cpp) under four core placements: every subtask
  * forced onto core 0 ("single_core", the old allocator stub's literal
- * behavior) vs allocator::apply_auto_allocation (WF+DRU) spread across 4
- * cores ("wf_dru"). See specs/allocator-comparison-eval/spec.md.
+ * behavior), allocator::apply_auto_allocation with strategy=worst_fit
+ * (WF+DRU, "wf_dru"), strategy=eru (Equilibrium Remaining Utilization,
+ * "eru" — specs/eru-allocator/), or strategy=tdta (Topology-based DAG
+ * Task Allocation, "tdta" — specs/tdta-allocator/), all three real
+ * strategies spread across 4 cores. This topology is a single DAG task,
+ * so tdta needs no TaskInfo::priority (no ordering ambiguity with only
+ * one task). See specs/allocator-comparison-eval/spec.md.
  *
  * No codegen, no JSON plan file: tools/codegen was deleted from this tree
  * (confirmed at spec time), so — like tests/test_flux.cpp and
@@ -18,7 +23,7 @@
  * release_ns is the intended periodic release instant (CLOCK_MONOTONIC),
  * finish_ns is when Tm (the sink) completes.
  *
- * Usage: allocator_comparison_eval <single_core|wf_dru> <freq_hz> [jobs]
+ * Usage: allocator_comparison_eval <single_core|wf_dru|eru|tdta> <freq_hz> [jobs]
  * Output: one CSV line per completed job to stdout
  * (job_index,release_ns,finish_ns,response_us); a summary (avg response
  * time, miss ratio) to stderr.
@@ -50,7 +55,7 @@ namespace {
 // Table I's own "high" workload values (already proven representative in
 // this codebase, not invented for this tool) — Ts, T0, T1, T2, T3, Tm.
 constexpr uint64_t WORKLOAD_US[6] = {900, 1800, 1800, 1800, 1800, 900};
-constexpr int WF_DRU_NUM_CORES = 4; // matches the topology's own fan-out width
+constexpr int ALLOCATED_NUM_CORES = 4; // matches the topology's own fan-out width; shared by wf_dru and eru
 
 constexpr std::size_t N = 32; // ring buffer slot count; see performance_test.cpp's
                                // comment on why the bare formula's minimum isn't used
@@ -92,7 +97,15 @@ DeploymentPlan build_plan(uint64_t period_us, const std::string& mode) {
         plan.allocation.strategy = "worst_fit";
         plan.allocation.sort_by = "remaining_utilization_desc";
         plan.allocation.weight = "utilization";
-        plan.allocation.num_cores = WF_DRU_NUM_CORES;
+        plan.allocation.num_cores = ALLOCATED_NUM_CORES;
+        allocator::apply_auto_allocation(plan);
+    } else if (mode == "eru") {
+        plan.allocation.strategy = "eru"; // sort_by/weight not consulted by eru
+        plan.allocation.num_cores = ALLOCATED_NUM_CORES;
+        allocator::apply_auto_allocation(plan);
+    } else if (mode == "tdta") {
+        plan.allocation.strategy = "tdta"; // sort_by/weight not consulted by tdta either
+        plan.allocation.num_cores = ALLOCATED_NUM_CORES;
         allocator::apply_auto_allocation(plan);
     }
     return plan;
@@ -137,12 +150,12 @@ std::vector<rtmid::WiredNode> wire(const DeploymentPlan& plan, TaskBuffers& bufs
 
 int main(int argc, char** argv) {
     if (argc < 3) {
-        std::cerr << "Usage: allocator_comparison_eval <single_core|wf_dru> <freq_hz> [jobs]\n";
+        std::cerr << "Usage: allocator_comparison_eval <single_core|wf_dru|eru|tdta> <freq_hz> [jobs]\n";
         return 1;
     }
     const std::string mode = argv[1];
-    if (mode != "single_core" && mode != "wf_dru") {
-        std::cerr << "unknown mode: " << mode << " (expected single_core or wf_dru)\n";
+    if (mode != "single_core" && mode != "wf_dru" && mode != "eru" && mode != "tdta") {
+        std::cerr << "unknown mode: " << mode << " (expected single_core, wf_dru, eru, or tdta)\n";
         return 1;
     }
     const double freq_hz = std::atof(argv[2]);

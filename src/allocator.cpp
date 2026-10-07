@@ -1,6 +1,7 @@
 #include "allocator.hpp"
 #include "dru.hpp"
 #include "eru.hpp"
+#include "tdta.hpp"
 #include <stdexcept>
 
 namespace allocator {
@@ -36,9 +37,13 @@ void apply_auto_allocation(DeploymentPlan& plan) {
         eru::apply_eru_allocation(plan);
         return;
     }
+    if (cfg.strategy == "tdta") {
+        tdta::apply_tdta_allocation(plan);
+        return;
+    }
     throw std::runtime_error(
         "allocator::apply_auto_allocation: unimplemented strategy \"" + cfg.strategy +
-        "\" (only \"worst_fit\" and \"eru\" are implemented so far)");
+        "\" (only \"worst_fit\", \"eru\", and \"tdta\" are implemented so far)");
 }
 
 } // namespace allocator

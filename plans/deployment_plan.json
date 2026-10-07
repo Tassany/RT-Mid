@@ -6,12 +6,12 @@
     {
       "id": 1,
       "subtasks": [
-        { "id": 1, "component_type": "source_demo",       "cpp_class": "SourceDemo",       "header": "demo_components.hpp", "output_type": "double",                       "priority": 10, "period_ns": 5000000, "deadline_ns": 5000000, "wcet_ns": 900000,  "config": {} },
-        { "id": 2, "component_type": "intermediate_demo",  "cpp_class": "IntermediateDemo", "header": "demo_components.hpp", "input_type": "double", "output_type": "double", "priority": 10, "period_ns": 5000000, "deadline_ns": 5000000, "wcet_ns": 1800000, "config": { "gain": 2.0 } },
-        { "id": 3, "component_type": "intermediate_demo",  "cpp_class": "IntermediateDemo", "header": "demo_components.hpp", "input_type": "double", "output_type": "double", "priority": 10, "period_ns": 5000000, "deadline_ns": 5000000, "wcet_ns": 1800000, "config": { "gain": 3.0 } },
-        { "id": 4, "component_type": "intermediate_demo",  "cpp_class": "IntermediateDemo", "header": "demo_components.hpp", "input_type": "double", "output_type": "double", "priority": 10, "period_ns": 5000000, "deadline_ns": 5000000, "wcet_ns": 1800000, "config": { "gain": 4.0 } },
-        { "id": 5, "component_type": "intermediate_demo",  "cpp_class": "IntermediateDemo", "header": "demo_components.hpp", "input_type": "double", "output_type": "double", "priority": 10, "period_ns": 5000000, "deadline_ns": 5000000, "wcet_ns": 1800000, "config": { "gain": 5.0 } },
-        { "id": 6, "component_type": "sink_demo",          "cpp_class": "SinkDemo",         "header": "demo_components.hpp", "input_type": "std::array<double,4>",          "priority": 10, "period_ns": 5000000, "deadline_ns": 5000000, "wcet_ns": 900000,  "config": {} }
+        { "id": 1, "component_type": "source",       "cpp_class": "SourceDemo",       "header": "demo_components.hpp", "output_type": "double",                       "priority": 10, "period_us": 5000, "deadline_us": 5000, "wcet_us": 900,  "config": {} },
+        { "id": 2, "component_type": "intermediate",  "cpp_class": "IntermediateDemo", "header": "demo_components.hpp", "input_type": "double", "output_type": "double", "priority": 10, "period_us": 5000, "deadline_us": 5000, "wcet_us": 1800, "config": { "gain": 2.0 } },
+        { "id": 3, "component_type": "intermediate",  "cpp_class": "IntermediateDemo", "header": "demo_components.hpp", "input_type": "double", "output_type": "double", "priority": 10, "period_us": 5000, "deadline_us": 5000, "wcet_us": 1800, "config": { "gain": 3.0 } },
+        { "id": 4, "component_type": "intermediate",  "cpp_class": "IntermediateDemo", "header": "demo_components.hpp", "input_type": "double", "output_type": "double", "priority": 10, "period_us": 5000, "deadline_us": 5000, "wcet_us": 1800, "config": { "gain": 4.0 } },
+        { "id": 5, "component_type": "intermediate",  "cpp_class": "IntermediateDemo", "header": "demo_components.hpp", "input_type": "double", "output_type": "double", "priority": 10, "period_us": 5000, "deadline_us": 5000, "wcet_us": 1800, "config": { "gain": 5.0 } },
+        { "id": 6, "component_type": "sink",          "cpp_class": "SinkDemo",         "header": "demo_components.hpp", "input_type": "std::array<double,4>",          "priority": 10, "period_us": 5000, "deadline_us": 5000, "wcet_us": 900,  "config": {} }
       ]
     }
   ],
@@ -27,6 +27,7 @@
   ],
   "allocation": {
     "strategy": "worst_fit",
-    "sort_by":  "none"
+    "sort_by":  "remaining_utilization_desc",
+    "weight":   "utilization"
   }
 }

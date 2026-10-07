@@ -45,17 +45,16 @@ DAG build_plan_dag(const DeploymentPlan& plan);
  *
  * Dispatches on plan.allocation.strategy: "worst_fit" calls
  * dru::apply_wf_dru_allocation (WF+DRU); "eru" calls
- * eru::apply_eru_allocation. Any other strategy value is rejected — this
- * codebase implements exactly these named heuristics, not a general
- * allocation-strategy framework (more strategies are added as their own
- * dispatch branches, e.g. a future specs/tdta-allocator/).
+ * eru::apply_eru_allocation; "tdta" calls tdta::apply_tdta_allocation.
+ * Any other strategy value is rejected — this codebase implements exactly
+ * these named heuristics, not a general allocation-strategy framework.
  *
  * @param plan Deployment plan whose unassigned subtasks are mutated in
  *        place.
  * @return void
- * @throws std::runtime_error if plan.allocation.strategy is neither
- *         "worst_fit" nor "eru", or if the chosen strategy itself reports
- *         infeasible placement.
+ * @throws std::runtime_error if plan.allocation.strategy is none of
+ *         "worst_fit", "eru", "tdta", or if the chosen strategy itself
+ *         reports infeasible placement.
  */
 void apply_auto_allocation(DeploymentPlan& plan);
 

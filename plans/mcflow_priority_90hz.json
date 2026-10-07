@@ -11,13 +11,13 @@
       "subtasks": [
         {
           "id": 1,
-          "component_type": "bench_source",
+          "component_type": "source",
           "cpp_class": "BenchSource",
           "header": "mcflow_bench_components.hpp",
           "priority": 30,
-          "period_ns": 5000000,
-          "deadline_ns": 5000000,
-          "wcet_ns": 900000,
+          "period_us": 5000,
+          "deadline_us": 5000,
+          "wcet_us": 900,
           "core": 0,
           "config": {
             "workload_us": 900
@@ -26,13 +26,13 @@
         },
         {
           "id": 2,
-          "component_type": "bench_intermediate",
+          "component_type": "intermediate",
           "cpp_class": "BenchIntermediate",
           "header": "mcflow_bench_components.hpp",
           "priority": 30,
-          "period_ns": 5000000,
-          "deadline_ns": 5000000,
-          "wcet_ns": 1800000,
+          "period_us": 5000,
+          "deadline_us": 5000,
+          "wcet_us": 1800,
           "core": 0,
           "config": {
             "workload_us": 1800
@@ -42,13 +42,13 @@
         },
         {
           "id": 3,
-          "component_type": "bench_intermediate",
+          "component_type": "intermediate",
           "cpp_class": "BenchIntermediate",
           "header": "mcflow_bench_components.hpp",
           "priority": 30,
-          "period_ns": 5000000,
-          "deadline_ns": 5000000,
-          "wcet_ns": 1800000,
+          "period_us": 5000,
+          "deadline_us": 5000,
+          "wcet_us": 1800,
           "core": 1,
           "config": {
             "workload_us": 1800
@@ -58,13 +58,13 @@
         },
         {
           "id": 4,
-          "component_type": "bench_intermediate",
+          "component_type": "intermediate",
           "cpp_class": "BenchIntermediate",
           "header": "mcflow_bench_components.hpp",
           "priority": 30,
-          "period_ns": 5000000,
-          "deadline_ns": 5000000,
-          "wcet_ns": 1800000,
+          "period_us": 5000,
+          "deadline_us": 5000,
+          "wcet_us": 1800,
           "core": 2,
           "config": {
             "workload_us": 1800
@@ -74,13 +74,13 @@
         },
         {
           "id": 5,
-          "component_type": "bench_intermediate",
+          "component_type": "intermediate",
           "cpp_class": "BenchIntermediate",
           "header": "mcflow_bench_components.hpp",
           "priority": 30,
-          "period_ns": 5000000,
-          "deadline_ns": 5000000,
-          "wcet_ns": 1800000,
+          "period_us": 5000,
+          "deadline_us": 5000,
+          "wcet_us": 1800,
           "core": 3,
           "config": {
             "workload_us": 1800
@@ -90,13 +90,13 @@
         },
         {
           "id": 6,
-          "component_type": "bench_sink4",
+          "component_type": "sink",
           "cpp_class": "BenchSink4",
           "header": "mcflow_bench_components.hpp",
           "priority": 30,
-          "period_ns": 5000000,
-          "deadline_ns": 5000000,
-          "wcet_ns": 900000,
+          "period_us": 5000,
+          "deadline_us": 5000,
+          "wcet_us": 900,
           "core": 0,
           "config": {
             "workload_us": 900
@@ -110,13 +110,13 @@
       "subtasks": [
         {
           "id": 7,
-          "component_type": "bench_source",
+          "component_type": "source",
           "cpp_class": "BenchSource",
           "header": "mcflow_bench_components.hpp",
           "priority": 20,
-          "period_ns": 10000000,
-          "deadline_ns": 10000000,
-          "wcet_ns": 900000,
+          "period_us": 10000,
+          "deadline_us": 10000,
+          "wcet_us": 900,
           "core": 1,
           "config": {
             "workload_us": 900
@@ -125,13 +125,13 @@
         },
         {
           "id": 8,
-          "component_type": "bench_intermediate",
+          "component_type": "intermediate",
           "cpp_class": "BenchIntermediate",
           "header": "mcflow_bench_components.hpp",
           "priority": 20,
-          "period_ns": 10000000,
-          "deadline_ns": 10000000,
-          "wcet_ns": 0,
+          "period_us": 10000,
+          "deadline_us": 10000,
+          "wcet_us": 0,
           "core": 0,
           "config": {
             "workload_us": 0
@@ -141,13 +141,13 @@
         },
         {
           "id": 9,
-          "component_type": "bench_intermediate",
+          "component_type": "intermediate",
           "cpp_class": "BenchIntermediate",
           "header": "mcflow_bench_components.hpp",
           "priority": 20,
-          "period_ns": 10000000,
-          "deadline_ns": 10000000,
-          "wcet_ns": 1800000,
+          "period_us": 10000,
+          "deadline_us": 10000,
+          "wcet_us": 1800,
           "core": 1,
           "config": {
             "workload_us": 1800
@@ -157,13 +157,13 @@
         },
         {
           "id": 10,
-          "component_type": "bench_intermediate",
+          "component_type": "intermediate",
           "cpp_class": "BenchIntermediate",
           "header": "mcflow_bench_components.hpp",
           "priority": 20,
-          "period_ns": 10000000,
-          "deadline_ns": 10000000,
-          "wcet_ns": 1800000,
+          "period_us": 10000,
+          "deadline_us": 10000,
+          "wcet_us": 1800,
           "core": 2,
           "config": {
             "workload_us": 1800
@@ -173,13 +173,13 @@
         },
         {
           "id": 11,
-          "component_type": "bench_intermediate",
+          "component_type": "intermediate",
           "cpp_class": "BenchIntermediate",
           "header": "mcflow_bench_components.hpp",
           "priority": 20,
-          "period_ns": 10000000,
-          "deadline_ns": 10000000,
-          "wcet_ns": 1800000,
+          "period_us": 10000,
+          "deadline_us": 10000,
+          "wcet_us": 1800,
           "core": 3,
           "config": {
             "workload_us": 1800
@@ -189,13 +189,13 @@
         },
         {
           "id": 12,
-          "component_type": "bench_sink4",
+          "component_type": "sink",
           "cpp_class": "BenchSink4",
           "header": "mcflow_bench_components.hpp",
           "priority": 20,
-          "period_ns": 10000000,
-          "deadline_ns": 10000000,
-          "wcet_ns": 1800000,
+          "period_us": 10000,
+          "deadline_us": 10000,
+          "wcet_us": 1800,
           "core": 1,
           "config": {
             "workload_us": 1800
@@ -209,13 +209,13 @@
       "subtasks": [
         {
           "id": 13,
-          "component_type": "bench_source",
+          "component_type": "source",
           "cpp_class": "BenchSource",
           "header": "mcflow_bench_components.hpp",
           "priority": 10,
-          "period_ns": 11111111,
-          "deadline_ns": 11111111,
-          "wcet_ns": 900000,
+          "period_us": 11111,
+          "deadline_us": 11111,
+          "wcet_us": 900,
           "core": 2,
           "config": {
             "workload_us": 900
@@ -224,13 +224,13 @@
         },
         {
           "id": 14,
-          "component_type": "bench_intermediate",
+          "component_type": "intermediate",
           "cpp_class": "BenchIntermediate",
           "header": "mcflow_bench_components.hpp",
           "priority": 10,
-          "period_ns": 11111111,
-          "deadline_ns": 11111111,
-          "wcet_ns": 1800000,
+          "period_us": 11111,
+          "deadline_us": 11111,
+          "wcet_us": 1800,
           "core": 0,
           "config": {
             "workload_us": 1800
@@ -240,13 +240,13 @@
         },
         {
           "id": 15,
-          "component_type": "bench_intermediate",
+          "component_type": "intermediate",
           "cpp_class": "BenchIntermediate",
           "header": "mcflow_bench_components.hpp",
           "priority": 10,
-          "period_ns": 11111111,
-          "deadline_ns": 11111111,
-          "wcet_ns": 900000,
+          "period_us": 11111,
+          "deadline_us": 11111,
+          "wcet_us": 900,
           "core": 1,
           "config": {
             "workload_us": 900
@@ -256,13 +256,13 @@
         },
         {
           "id": 16,
-          "component_type": "bench_intermediate",
+          "component_type": "intermediate",
           "cpp_class": "BenchIntermediate",
           "header": "mcflow_bench_components.hpp",
           "priority": 10,
-          "period_ns": 11111111,
-          "deadline_ns": 11111111,
-          "wcet_ns": 4500000,
+          "period_us": 11111,
+          "deadline_us": 11111,
+          "wcet_us": 4500,
           "core": 2,
           "config": {
             "workload_us": 4500
@@ -272,13 +272,13 @@
         },
         {
           "id": 17,
-          "component_type": "bench_intermediate",
+          "component_type": "intermediate",
           "cpp_class": "BenchIntermediate",
           "header": "mcflow_bench_components.hpp",
           "priority": 10,
-          "period_ns": 11111111,
-          "deadline_ns": 11111111,
-          "wcet_ns": 3600000,
+          "period_us": 11111,
+          "deadline_us": 11111,
+          "wcet_us": 3600,
           "core": 3,
           "config": {
             "workload_us": 3600
@@ -288,13 +288,13 @@
         },
         {
           "id": 18,
-          "component_type": "bench_sink4",
+          "component_type": "sink",
           "cpp_class": "BenchSink4",
           "header": "mcflow_bench_components.hpp",
           "priority": 10,
-          "period_ns": 11111111,
-          "deadline_ns": 11111111,
-          "wcet_ns": 900000,
+          "period_us": 11111,
+          "deadline_us": 11111,
+          "wcet_us": 900,
           "core": 2,
           "config": {
             "workload_us": 900
