@@ -121,3 +121,49 @@ a surprise discovered during a later read-through.
 3. **Stopping criterion**: the pass is done when the trace can be drawn and
    explained from memory — not when every line of every file has been read.
    Don't let this step expand past its criterion.
+
+## 9. Elaborate work: grill before you spec
+
+Trigger, kept concrete on purpose (see §2's "can the difficulty be named"
+test for why): a request counts as **elaborate** when it will plainly take
+more than one commit-sized change to implement (§1's ~150-line guideline) —
+a new architectural piece, a rewrite spanning a whole layer, anything
+touching more than one of the layers mapped in §8/the architecture
+artifact. A single bugfix, a single new test, or a one-file addition does
+not trigger this — this is a gate on scope, not a feeling that the task
+matters.
+
+When it triggers:
+
+1. Pressure-test the idea before it becomes a spec — `grill-with-docs`
+   (`mattpocock-skills`) is the named tool for this, but its skill is
+   marked `disable-model-invocation`, so an assistant cannot call it
+   directly; only the human author can, by typing `/grill-with-docs`. If the
+   author hasn't done that when this step is due, an assistant reproduces
+   the same effect itself by calling `grilling` then `domain-modeling` in
+   sequence (that's literally what `grill-with-docs` chains) — or simply
+   asks the author to run `/grill-with-docs`.
+2. Once the idea survives that, use `spec-driven-development` (`sdd`) to
+   turn it into a spec → plan → tasks, and keep using it to track execution
+   as the work proceeds — not just at kickoff. `sdd` has no such
+   restriction; an assistant can trigger it directly.
+
+This doesn't replace §4 (spec-first for the core scientific contribution) —
+core-contribution work still needs the pseudocode/paper-model check §4
+requires either way. It adds the grilling step in front of that, and covers
+elaborate work outside the core contribution too.
+
+## 10. Doxygen comments: rewritten alongside the code, capped at 120 words
+
+Whenever code carrying a Doxygen comment (`/** ... */` with `@brief`,
+`@param`, `@return`, `@var`, etc.) is edited, that comment is rewritten in
+the same change to match the new behavior — never left describing what the
+code used to do. Each comment block is capped at 120 words.
+
+If describing the new behavior honestly needs more than 120 words, that's a
+signal per §2's own test ("can the difficulty be named?") that the code
+needs rewriting or splitting, not a longer comment.
+
+This applies to whatever a change actually touches, going forward — it does
+not require rewriting every existing Doxygen comment in the codebase up
+front.

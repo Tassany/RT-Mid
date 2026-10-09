@@ -27,6 +27,16 @@ struct HostInfo {
  */
 constexpr int CORE_UNASSIGNED = -1;
 
+/**
+ * @brief Sentinel meaning "no task-level priority declared in the plan".
+ *
+ * TaskInfo::priority (pi(tau_i) in specs/tdta-allocator/) is
+ * allocation-time-only metadata consumed by the "tdta" strategy to order
+ * DAG tasks; it is unrelated to SubtaskInfo::priority, which TeamManager
+ * uses at runtime for Dispatcher (core, priority) grouping.
+ */
+constexpr int TASK_PRIORITY_UNSET = -1;
+
 
 /**
  * @brief One subtask (pipeline node) as declared in a deployment plan.
@@ -114,48 +124,55 @@ struct ConnectionInfo {
 /**
  * @brief A task grouping one or more subtasks under a shared task id.
  * @var TaskInfo::id Task identifier.
+ * @var TaskInfo::priority pi(tau_i); TASK_PRIORITY_UNSET if not declared.
+ *      Smaller value = higher priority. Allocation-time-only (the "tdta"
+ *      strategy's task-ordering rule) — not read by TeamManager/Dispatcher.
  * @var TaskInfo::subtasks Subtasks belonging to this task.
  */
 struct TaskInfo {
     int id;
+    int priority = TASK_PRIORITY_UNSET;
     std::vector<SubtaskInfo> subtasks;
 };
 
 // Optional "allocation" block of the plan. Drives the automatic core
 // assignment applied to every subtask that omits "core".
 /**
- * @brief Optional "allocation" block of a plan.
+ * @brief Optional "allocation" block; auto-assigns cores to subtasks
+ * that omit "core" via allocator::apply_auto_allocation, which dispatches
+ * on strategy: "worst_fit" is Worst-Fit with Decreasing Remaining
+ * Utilisation (Verucchi et al. 2023; src/dru.hpp); "eru" is Equilibrium
+ * Remaining Utilization (Wu et al. 2023, Algorithm 2; src/eru.hpp); "tdta"
+ * is the full Topology-based DAG Task Allocation strategy (Wu et al.
+ * 2023, Algorithm 3; src/tdta.hpp), which requires TaskInfo::priority set
+ * whenever the plan has more than one task. Neither "eru" nor "tdta"
+ * consult sort_by/weight at all — those are worst_fit-specific.
  *
- * Drives the automatic core assignment applied to every subtask that
- * omits "core".
+ * Only strategy=worst_fit's own sort_by/weight defaults below are
+ * implemented for that strategy; other inline-commented sort_by/weight
+ * values are the WF+DRU paper's own Sect. 7 baselines and make
+ * allocator::apply_auto_allocation throw when strategy=worst_fit.
  *
- * @var AllocationConfig::strategy Packing strategy: first_fit | best_fit |
- *      worst_fit.
- * @var AllocationConfig::sort_by Subtask ordering before packing:
- *      priority_desc | priority_asc | period_asc | period_desc |
- *      utilization_asc | utilization_desc | remaining_utilization_desc |
- *      none.
- * @var AllocationConfig::weight Metric used to size subtasks: count |
- *      utilization.
- * @var AllocationConfig::num_cores Number of cores to pack into; 0 means
- *      all online CPUs.
- * @var AllocationConfig::capacity Per-core capacity; 0 means derive from
- *      weight mode.
- * @var AllocationConfig::validate Extra acceptance test run after the
- *      utilization-sum packing succeeds: none | rta | rta_v (see
- *      src/rta_fonseca2016.hpp).
- * @var AllocationConfig::guided When not "none", replaces the
- *      utilization-sum packing itself with one that tests each candidate
- *      core against this RTA technique as it goes: none | rta | rta_v
- *      (see allocator::detail::pack_rta_guided).
+ * @var AllocationConfig::strategy Packing strategy (values inline).
+ * @var AllocationConfig::sort_by Ordering before packing; worst_fit only (values inline).
+ * @var AllocationConfig::weight Subtask sizing metric; worst_fit only (values inline).
+ * @var AllocationConfig::num_cores 0 = all online CPUs.
+ * @var AllocationConfig::capacity 0 = derive from weight mode.
+ * @var AllocationConfig::validate Field itself unimplemented, not
+ *      consulted — but the analysis it would invoke,
+ *      rta_fonseca2016::compute_wcrt/check_schedulability (Fonseca et
+ *      al. 2016), exists and is directly callable; specs/rta-fonseca2016/
+ *      scoped wiring this field to it as a separate, future concern.
+ * @var AllocationConfig::guided Unimplemented, not consulted (same
+ *      caveat as @ref AllocationConfig::validate).
  */
 struct AllocationConfig {
-    std::string strategy  = "worst_fit";     // first_fit | best_fit | worst_fit
-    std::string sort_by   = "priority_desc"; // priority_desc | priority_asc | period_asc |
-                                             // period_desc | utilization_asc |
+    std::string strategy  = "worst_fit";                     // first_fit | best_fit | worst_fit | eru | tdta
+    std::string sort_by   = "remaining_utilization_desc";    // priority_desc | priority_asc |
+                                             // period_asc | period_desc | utilization_asc |
                                              // utilization_desc | remaining_utilization_desc |
                                              // none
-    std::string weight    = "count";         // count | utilization
+    std::string weight    = "utilization";   // count | utilization
     int         num_cores = 0;               // 0 = all online CPUs
     double      capacity  = 0.0;             // 0 = derive from weight mode
     std::string validate  = "none";          // none | rta | rta_v — extra acceptance test run

@@ -17,11 +17,28 @@
 #include <time.h>
 #include "component_registry.hpp"
 
+/** @brief Config for bench components: busy-spin duration in microseconds. */
 struct WorkloadConfig { uint64_t workload_us = 0; };
+/**
+ * @brief Parses a WorkloadConfig from JSON.
+ * @param j JSON object optionally containing a "workload_us" field.
+ * @param c Output config; c.workload_us is set from j, defaulting to 0.
+ * @return void
+ */
 inline void from_json(const nlohmann::json& j, WorkloadConfig& c) {
     c.workload_us = j.value("workload_us", uint64_t(0));
 }
 
+/**
+ * @brief Busy-spins on CLOCK_MONOTONIC for a fixed duration.
+ *
+ * Holds the CPU (rather than sleeping, which would yield it) so the
+ * simulated workload actually occupies the core for the requested time,
+ * matching a real WCET-bearing subtask.
+ *
+ * @param us Duration to spin for, in microseconds; 0 returns immediately.
+ * @return void
+ */
 inline void busy_spin_us(uint64_t us) {
     if (us == 0) return;
     struct timespec start;
@@ -37,25 +54,41 @@ inline void busy_spin_us(uint64_t us) {
     }
 }
 
+/** @brief Benchmark source component: spins, then outputs a constant. */
 class BenchSource : public SourceComponent<double, WorkloadConfig> {
 public:
     using SourceComponent::SourceComponent;
+    /**
+     * @brief Busy-spins for config_->workload_us, then sets output_ to 1.0.
+     * @return void
+     */
     void execute() override { busy_spin_us(config_->workload_us); output_ = 1.0; }
 };
 
+/** @brief Benchmark intermediate component: spins, then forwards its input. */
 class BenchIntermediate : public Component<double, double, WorkloadConfig> {
 public:
     using Component::Component;
+    /**
+     * @brief Busy-spins for config_->workload_us, then copies input_ to
+     *        output_.
+     * @return void
+     */
     void execute() override { busy_spin_us(config_->workload_us); output_ = input_; }
 };
 
 // Sink for a 4-fan-in task (this experiment's topology: Ts -> T0..T3 -> Tm).
+/** @brief Benchmark sink for a 4-fan-in task (Ts -> T0..T3 -> Tm). */
 class BenchSink4 : public SinkComponent<std::array<double, 4>, WorkloadConfig> {
 public:
     using SinkComponent::SinkComponent;
+    /**
+     * @brief Busy-spins for config_->workload_us, discarding the input.
+     * @return void
+     */
     void execute() override { busy_spin_us(config_->workload_us); }
 };
 
-RT_MID_REGISTER_COMPONENT("bench_source",       BenchSource,       WorkloadConfig)
-RT_MID_REGISTER_COMPONENT("bench_intermediate", BenchIntermediate, WorkloadConfig)
-RT_MID_REGISTER_COMPONENT("bench_sink4",        BenchSink4,        WorkloadConfig)
+RT_MID_REGISTER_COMPONENT("source",       BenchSource,       WorkloadConfig)
+RT_MID_REGISTER_COMPONENT("intermediate", BenchIntermediate, WorkloadConfig)
+RT_MID_REGISTER_COMPONENT("sink",         BenchSink4,        WorkloadConfig)

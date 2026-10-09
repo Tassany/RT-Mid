@@ -1,0 +1,14 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "RT-Mid: DAG Scheduling Middleware for Real-Time Subtask Pipelines"
+abstract: >-
+  Middleware for real-time subtask pipelines organized as DAGs, with
+  automatic subtask-to-core allocation (including a topology-based
+  allocator, TDTA) as its main contribution.
+authors:
+  - family-names: "Onofre de Oliveira"
+    given-names: "Tassany"
+    affiliation: "ENAC (École Nationale de l'Aviation Civile)"
+    email: "tassany.onofre-de-oliveira@enac.fr"
+license: MIT
+repository-code: "https://github.com/Tassany/RT-Mid"
